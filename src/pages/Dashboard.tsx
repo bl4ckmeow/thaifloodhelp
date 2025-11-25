@@ -21,6 +21,8 @@ import {
   UserRound,
   Filter,
   Loader2,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -47,6 +49,9 @@ interface Report {
   status: string;
   created_at: string;
   updated_at: string;
+  raw_message: string;
+  location_lat: number | null;
+  location_long: number | null;
 }
 
 const Dashboard = () => {
@@ -59,6 +64,7 @@ const Dashboard = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [forceDeepSearch, setForceDeepSearch] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchReports();
@@ -181,6 +187,18 @@ const Dashboard = () => {
 
   const getUrgencyBadgeClass = (level: number) => {
     return `urgency-badge-${level}`;
+  };
+
+  const toggleRowExpansion = (reportId: string) => {
+    setExpandedRows((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(reportId)) {
+        newSet.delete(reportId);
+      } else {
+        newSet.add(reportId);
+      }
+      return newSet;
+    });
   };
 
   const stats = {
@@ -365,6 +383,7 @@ const Dashboard = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12"></TableHead>
                       <TableHead>ความเร่งด่วน</TableHead>
                       <TableHead>ชื่อ-นามสกุล</TableHead>
                       <TableHead>ที่อยู่</TableHead>
@@ -378,30 +397,108 @@ const Dashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredReports.map((report) => (
-                      <TableRow key={report.id}>
-                        <TableCell>
-                          <Badge className={getUrgencyBadgeClass(report.urgency_level)}>
-                            {report.urgency_level}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {report.name} {report.lastname}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">{report.address}</TableCell>
-                        <TableCell>
-                          {report.phone.length > 0 ? report.phone.join(', ') : '-'}
-                        </TableCell>
-                        <TableCell className="text-center">{report.number_of_adults}</TableCell>
-                        <TableCell className="text-center">{report.number_of_children}</TableCell>
-                        <TableCell className="text-center">{report.number_of_infants || 0}</TableCell>
-                        <TableCell className="text-center">{report.number_of_seniors}</TableCell>
-                        <TableCell className="text-center">{report.number_of_patients || 0}</TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {report.help_needed || '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredReports.map((report) => {
+                      const isExpanded = expandedRows.has(report.id);
+                      return (
+                        <>
+                          <TableRow key={report.id}>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleRowExpansion(report.id)}
+                                className="h-8 w-8 p-0"
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getUrgencyBadgeClass(report.urgency_level)}>
+                                {report.urgency_level}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {report.name} {report.lastname}
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate">{report.address}</TableCell>
+                            <TableCell>
+                              {report.phone.length > 0 ? report.phone.join(', ') : '-'}
+                            </TableCell>
+                            <TableCell className="text-center">{report.number_of_adults}</TableCell>
+                            <TableCell className="text-center">{report.number_of_children}</TableCell>
+                            <TableCell className="text-center">{report.number_of_infants || 0}</TableCell>
+                            <TableCell className="text-center">{report.number_of_seniors}</TableCell>
+                            <TableCell className="text-center">{report.number_of_patients || 0}</TableCell>
+                            <TableCell className="max-w-xs truncate">
+                              {report.help_needed || '-'}
+                            </TableCell>
+                          </TableRow>
+                          {isExpanded && (
+                            <TableRow key={`${report.id}-expanded`}>
+                              <TableCell colSpan={11} className="bg-muted/30 p-6">
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                      <h4 className="font-semibold mb-2">ข้อมูลทั่วไป</h4>
+                                      <div className="space-y-1 text-sm">
+                                        <p><span className="font-medium">ชื่อ:</span> {report.name} {report.lastname}</p>
+                                        <p><span className="font-medium">ผู้รายงาน:</span> {report.reporter_name || '-'}</p>
+                                        <p><span className="font-medium">ที่อยู่:</span> {report.address || '-'}</p>
+                                        <p><span className="font-medium">เบอร์โทร:</span> {report.phone?.length > 0 ? report.phone.join(', ') : '-'}</p>
+                                        <p><span className="font-medium">ตำแหน่ง:</span> {report.location_lat && report.location_long ? `${report.location_lat}, ${report.location_long}` : '-'}</p>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold mb-2">จำนวนผู้ประสบภัย</h4>
+                                      <div className="space-y-1 text-sm">
+                                        <p><span className="font-medium">ผู้ใหญ่:</span> {report.number_of_adults || 0}</p>
+                                        <p><span className="font-medium">เด็ก:</span> {report.number_of_children || 0}</p>
+                                        <p><span className="font-medium">ทารก:</span> {report.number_of_infants || 0}</p>
+                                        <p><span className="font-medium">ผู้สูงอายุ:</span> {report.number_of_seniors || 0}</p>
+                                        <p><span className="font-medium">ผู้ป่วย:</span> {report.number_of_patients || 0}</p>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold mb-2">สุขภาพและความช่วยเหลือ</h4>
+                                      <div className="space-y-1 text-sm">
+                                        <p><span className="font-medium">อาการ:</span> {report.health_condition || '-'}</p>
+                                        <p><span className="font-medium">ความช่วยเหลือ:</span> {report.help_needed || '-'}</p>
+                                        <p><span className="font-medium">ประเภทความช่วยเหลือ:</span> {report.help_categories?.length > 0 ? report.help_categories.join(', ') : '-'}</p>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Metadata</h4>
+                                      <div className="space-y-1 text-sm">
+                                        <p><span className="font-medium">สถานะ:</span> {report.status || '-'}</p>
+                                        <p><span className="font-medium">ระดับความเร่งด่วน:</span> {report.urgency_level}</p>
+                                        <p><span className="font-medium">วันที่บันทึก:</span> {new Date(report.created_at).toLocaleString('th-TH')}</p>
+                                        <p><span className="font-medium">แก้ไขล่าสุด:</span> {new Date(report.updated_at).toLocaleString('th-TH')}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {report.additional_info && (
+                                    <div>
+                                      <h4 className="font-semibold mb-2">ข้อมูลเพิ่มเติม</h4>
+                                      <p className="text-sm">{report.additional_info}</p>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <h4 className="font-semibold mb-2">ข้อความต้นฉบับ (Raw Data)</h4>
+                                    <div className="bg-background rounded-md p-4 border">
+                                      <pre className="text-sm whitespace-pre-wrap break-words">{report.raw_message}</pre>
+                                    </div>
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
