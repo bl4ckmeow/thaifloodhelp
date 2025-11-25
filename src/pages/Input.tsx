@@ -7,14 +7,12 @@ import { AlertCircle, Droplets, Loader2, ImagePlus, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import Tesseract from "tesseract.js";
 import { formatPhoneNumber } from "@/lib/utils";
 
 const Input = () => {
   const [rawMessage, setRawMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
-  const [ocrProgress, setOcrProgress] = useState(0);
   const [error, setError] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -36,62 +34,59 @@ const Input = () => {
 
     setError("");
     setIsOcrProcessing(true);
-    setOcrProgress(0);
 
-    // Create preview
+    // Create preview and get base64
     const reader = new FileReader();
-    reader.onload = (event) => {
-      setPreviewImage(event.target?.result as string);
+    reader.onload = async (event) => {
+      const base64Image = event.target?.result as string;
+      setPreviewImage(base64Image);
+
+      try {
+        toast.info("กำลังอ่านข้อความจากรูปภาพด้วย AI...", {
+          description: "กระบวนการนี้อาจใช้เวลาสักครู่",
+        });
+
+        const { data, error: ocrError } = await supabase.functions.invoke('ocr-image', {
+          body: { image: base64Image }
+        });
+
+        if (ocrError) throw ocrError;
+
+        const extractedText = data.text?.trim();
+
+        if (extractedText && extractedText !== "ไม่พบข้อความในรูปภาพ") {
+          // Clean the extracted text
+          const cleanedText = extractedText
+            .replace(/[\u200B-\u200D\uFEFF]/g, "") // Remove zero-width characters
+            .replace(/[^\S\r\n]+/g, " ") // Normalize spaces
+            .trim();
+
+          setRawMessage((prev) =>
+            prev ? prev + "\n\n" + cleanedText : cleanedText
+          );
+          toast.success("อ่านข้อความสำเร็จ", {
+            description: "ข้อความถูกเพิ่มในช่องด้านล่างแล้ว",
+          });
+        } else {
+          toast.warning("ไม่พบข้อความในรูปภาพ", {
+            description: "กรุณาลองใช้รูปภาพที่มีข้อความชัดเจนกว่านี้",
+          });
+        }
+      } catch (err) {
+        console.error("OCR error:", err);
+        setError("ไม่สามารถอ่านข้อความจากรูปภาพได้");
+        toast.error("เกิดข้อผิดพลาด", {
+          description: "ไม่สามารถอ่านข้อความจากรูปภาพได้",
+        });
+      } finally {
+        setIsOcrProcessing(false);
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
     };
     reader.readAsDataURL(file);
-
-    try {
-      toast.info("กำลังอ่านข้อความจากรูปภาพ...", {
-        description: "กระบวนการนี้อาจใช้เวลาสักครู่",
-      });
-
-      const result = await Tesseract.recognize(file, "tha+eng", {
-        logger: (m) => {
-          if (m.status === "recognizing text") {
-            setOcrProgress(Math.round(m.progress * 100));
-          }
-        },
-      });
-
-      const extractedText = result.data.text.trim();
-
-      if (extractedText) {
-        // Clean the extracted text
-        const cleanedText = extractedText
-          .replace(/[\u200B-\u200D\uFEFF]/g, "") // Remove zero-width characters
-          .replace(/[^\S\r\n]+/g, " ") // Normalize spaces
-          .trim();
-
-        setRawMessage((prev) =>
-          prev ? prev + "\n\n" + cleanedText : cleanedText
-        );
-        toast.success("อ่านข้อความสำเร็จ", {
-          description: "ข้อความถูกเพิ่มในช่องด้านล่างแล้ว",
-        });
-      } else {
-        toast.warning("ไม่พบข้อความในรูปภาพ", {
-          description: "กรุณาลองใช้รูปภาพที่มีข้อความชัดเจนกว่านี้",
-        });
-      }
-    } catch (err) {
-      console.error("OCR error:", err);
-      setError("ไม่สามารถอ่านข้อความจากรูปภาพได้");
-      toast.error("เกิดข้อผิดพลาด", {
-        description: "ไม่สามารถอ่านข้อความจากรูปภาพได้",
-      });
-    } finally {
-      setIsOcrProcessing(false);
-      setOcrProgress(0);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -242,7 +237,7 @@ const Input = () => {
                   <>
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     <span className="text-sm text-muted-foreground">
-                      กำลังอ่านข้อความ... {ocrProgress}%
+                      กำลังอ่านข้อความด้วย AI...
                     </span>
                   </>
                 ) : isDragging ? (
@@ -264,16 +259,6 @@ const Input = () => {
                   </>
                 )}
               </div>
-
-              {/* OCR Progress Bar */}
-              {isOcrProcessing && (
-                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-primary h-full transition-all duration-300"
-                    style={{ width: `${ocrProgress}%` }}
-                  />
-                </div>
-              )}
 
               {/* Image Preview */}
               {previewImage && (
