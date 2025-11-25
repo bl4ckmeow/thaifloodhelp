@@ -30,6 +30,7 @@ interface Report {
   id: string;
   name: string;
   lastname: string;
+  reporter_name: string;
   address: string;
   phone: string[];
   number_of_adults: number;
@@ -39,9 +40,11 @@ interface Report {
   number_of_patients: number;
   health_condition: string;
   help_needed: string;
+  additional_info: string;
   urgency_level: number;
   status: string;
   created_at: string;
+  updated_at: string;
 }
 
 const Dashboard = () => {
@@ -80,11 +83,17 @@ const Dashboard = () => {
     let filtered = reports;
 
     if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (r) =>
-          r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          r.lastname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          r.address.toLowerCase().includes(searchTerm.toLowerCase())
+          r.name?.toLowerCase().includes(lowerSearch) ||
+          r.lastname?.toLowerCase().includes(lowerSearch) ||
+          r.address?.toLowerCase().includes(lowerSearch) ||
+          r.reporter_name?.toLowerCase().includes(lowerSearch) ||
+          r.phone?.some(p => p.includes(searchTerm)) ||
+          r.health_condition?.toLowerCase().includes(lowerSearch) ||
+          r.help_needed?.toLowerCase().includes(lowerSearch) ||
+          r.additional_info?.toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -101,8 +110,7 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from('reports')
         .select('*')
-        .order('urgency_level', { ascending: false })
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
@@ -191,7 +199,7 @@ const Dashboard = () => {
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <Input
-                  placeholder="ค้นหาด้วยชื่อ หรือที่อยู่..."
+                  placeholder="ค้นหา: ชื่อ, ที่อยู่, เบอร์โทร, ความช่วยเหลือ..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
