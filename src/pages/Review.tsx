@@ -175,8 +175,18 @@ const Review = () => {
       const foundDuplicates = await checkForDuplicates(formData.raw_message);
 
       if (foundDuplicates.length > 0) {
-        // Duplicate found - don't save, just show success message
-        console.log('Duplicate detected, skipping save');
+        // Duplicate found - update the existing record's updated_at
+        console.log('Duplicate detected, updating existing record timestamp');
+        
+        const duplicateId = foundDuplicates[0].id;
+        const { error: updateError } = await supabase
+          .from('reports')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', duplicateId);
+
+        if (updateError) {
+          console.error('Error updating duplicate:', updateError);
+        }
         
         // Move to next report if in multi-report mode
         if (reports.length > 1 && currentIndex < reports.length - 1) {
