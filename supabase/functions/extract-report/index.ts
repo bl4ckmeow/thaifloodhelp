@@ -114,11 +114,10 @@ serve(async (req) => {
                   },
                   urgency_level: { 
                     type: 'integer', 
-                    description: 'ระดับความเร่งด่วน 1-5 ตามเกณฑ์ที่กำหนด',
-                    enum: [1, 2, 3, 4, 5]
+                    description: 'ระดับความเร่งด่วน 1-5 ตามเกณฑ์ที่กำหนด'
                   }
                 },
-                required: ['name', 'address', 'urgency_level']
+                additionalProperties: false
               }
             }
           }
