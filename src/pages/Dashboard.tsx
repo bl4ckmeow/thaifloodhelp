@@ -27,6 +27,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  MapPin,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -618,11 +619,11 @@ const Dashboard = () => {
                                   href={report.map_link} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center justify-center text-2xl hover:scale-110 transition-transform"
+                                  className="inline-flex items-center justify-center text-primary hover:text-primary/80 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
                                   title="เปิด Google Maps"
                                 >
-                                  🗺️
+                                  <MapPin className="h-5 w-5" />
                                 </a>
                               ) : (
                                 <span className="text-muted-foreground text-sm">-</span>
