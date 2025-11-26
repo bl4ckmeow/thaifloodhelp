@@ -3,11 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Droplets, Loader2, ImagePlus, X } from "lucide-react";
+import { AlertCircle, Droplets, Loader2, ImagePlus, X, User } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatPhoneNumber } from "@/lib/utils";
+import { useLiff } from "@/contexts/LiffContext";
+import { Share2 } from "lucide-react";
 
 const Input = () => {
   const [rawMessage, setRawMessage] = useState("");
@@ -18,6 +21,16 @@ const Input = () => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { isLoggedIn, profile, isLoading: isLiffLoading, isInLiffClient, shareTargetPicker, isShareAvailable } = useLiff();
+
+  const handleShare = async () => {
+    try {
+      await shareTargetPicker();
+      toast.success('ขอบคุณที่ช่วยแชร์ครับ');
+    } catch (err) {
+      console.error('Share error:', err);
+    }
+  };
 
   const processImageFile = async (file: File) => {
     // Validate file type
@@ -178,6 +191,29 @@ const Input = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 md:p-8">
       <div className="max-w-3xl mx-auto space-y-6">
+        {/* LINE Profile Display */}
+        {isLoggedIn && profile && (
+          <div className="flex items-center justify-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+            <Avatar className="h-10 w-10">
+              {profile.pictureUrl ? (
+                <AvatarImage src={profile.pictureUrl} alt={profile.displayName} />
+              ) : (
+                <AvatarFallback>
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              )}
+            </Avatar>
+            <div className="text-left">
+              <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                {profile.displayName}
+              </p>
+              <p className="text-xs text-green-600 dark:text-green-400">
+                เข้าสู่ระบบด้วย LINE แล้ว
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -355,6 +391,17 @@ const Input = () => {
               ) : (
                 "ประมวลผลด้วย AI"
               )}
+            </Button>
+
+            {/* LINE Share Button */}
+            <Button
+              onClick={handleShare}
+              variant="outline"
+              size="lg"
+              className="w-full text-lg h-12 bg-[#06C755] hover:bg-[#05b34c] text-white border-[#06C755] hover:border-[#05b34c]"
+            >
+              <Share2 className="mr-2 h-5 w-5" />
+              แชร์ผ่าน LINE
             </Button>
 
             <div className="text-center space-y-2">

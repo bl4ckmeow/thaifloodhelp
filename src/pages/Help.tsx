@@ -1,21 +1,10 @@
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, AlertTriangle, FileText, Search, Users, ArrowRight } from "lucide-react";
+import { AlertTriangle, FileText, Search, Users, ArrowRight } from "lucide-react";
 
 const Help = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate('/')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            กลับไปหน้าแรก
-          </Button>
-        </div>
-
         <div className="text-center space-y-2">
           <h1 className="text-3xl md:text-4xl font-bold">ศูนย์ช่วยเหลือ</h1>
           <p className="text-muted-foreground">คู่มือการใช้งานและข้อมูลสำคัญ</p>
@@ -314,11 +303,6 @@ const Help = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-center pb-8">
-          <Button onClick={() => navigate('/')} size="lg">
-            กลับไปหน้าแรก
-          </Button>
-        </div>
       </div>
     </div>
   );
