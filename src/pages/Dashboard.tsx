@@ -41,6 +41,7 @@ import type { Report } from "@/types/report";
 import { formatCaseId, getUrgencyBadgeClass } from "@/lib/reportUtils";
 import { HELP_CATEGORIES } from "@/constants/helpCategories";
 import { useLiff } from "@/contexts/LiffContext";
+import Map from "@/components/ui/map";
 
 const Dashboard = () => {
   const { shareTargetPicker } = useLiff();
@@ -83,6 +84,8 @@ const Dashboard = () => {
       setSortDirection('desc');
     }
   };
+
+  const reportsWithLocations = filteredReports.filter((r) => r.location_lat && r.location_long);
 
   const sortedReports = [...filteredReports].sort((a, b) => {
     if (!sortColumn) return 0;
@@ -590,6 +593,17 @@ const Dashboard = () => {
               </div>
             </div>
           </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle>แผนที่ความช่วยเหลือ</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+             {filteredReports && <Map reports={reportsWithLocations} />}
+            </div>
+          </CardContent>
         </Card>
 
         <div className="flex justify-between items-center">
