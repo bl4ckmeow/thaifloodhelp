@@ -26,7 +26,7 @@ serve(async (req) => {
     // Use Nominatim (OpenStreetMap) for geocoding - free and no API key required
     // Add Thailand bias and Thai language support
     const encodedAddress = encodeURIComponent(cleanedAddress);
-    const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodedAddress}&format=json&limit=1&countrycodes=th&accept-language=th`;
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodedAddress}&format=json&limit=3&countrycodes=th&accept-language=th`;
     
     console.log('Geocoding address:', cleanedAddress);
     
@@ -43,6 +43,7 @@ serve(async (req) => {
     const data = await response.json();
 
     if (data && data.length > 0) {
+      // Take the first result (highest confidence)
       const result = data[0];
       const lat = parseFloat(result.lat);
       const lng = parseFloat(result.lon);
@@ -64,17 +65,54 @@ serve(async (req) => {
       );
     }
 
+    // If no results, try with just the city/district name as fallback
+    const cityMatch = cleanedAddress.match(/(อ\.|จ\.|ต\.)([^\s]+)/);
+    if (cityMatch) {
+      const simplifiedAddress = cityMatch[0] + ' ' + cityMatch[2];
+      const simplifiedUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(simplifiedAddress)}&format=json&limit=1&countrycodes=th`;
+      
+      const fallbackResponse = await fetch(simplifiedUrl, {
+        headers: {
+          'User-Agent': 'ThaiFloodHelp/1.0 (Disaster Relief Application)',
+        },
+      });
+
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        if (fallbackData && fallbackData.length > 0) {
+          const result = fallbackData[0];
+          const lat = parseFloat(result.lat);
+          const lng = parseFloat(result.lon);
+          const mapLink = `https://maps.google.com/?q=${lat},${lng}`;
+
+          console.log('Geocoding successful with fallback:', { lat, lng, mapLink });
+
+          return new Response(
+            JSON.stringify({
+              lat,
+              lng,
+              map_link: mapLink,
+              display_name: result.display_name,
+              success: true
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
     console.log('No geocoding results found for address:', cleanedAddress);
 
+    // Return success: false instead of error - this is a normal case
     return new Response(
       JSON.stringify({
-        error: "Could not geocode address",
         lat: null,
         lng: null,
         map_link: null,
-        success: false
+        success: false,
+        message: "Address could not be geocoded"
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
 
   } catch (err) {

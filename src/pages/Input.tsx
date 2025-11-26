@@ -173,37 +173,42 @@ const Input = () => {
           let updatedReport = { ...report };
 
           // Step 1: Parse map_link if exists but no coordinates
-          if (report.map_link && !report.location_lat && !report.location_long) {
+          if (report.map_link && report.map_link !== '-' && !report.location_lat && !report.location_long) {
             try {
-              const { data: mapData, error: mapError } = await supabase.functions.invoke('parse-map-link', {
+              const { data: mapData } = await supabase.functions.invoke('parse-map-link', {
                 body: { mapLink: report.map_link }
               });
 
-              if (!mapError && mapData?.success) {
+              if (mapData?.success && mapData.lat && mapData.lng) {
                 updatedReport.location_lat = mapData.lat;
                 updatedReport.location_long = mapData.lng;
-                console.log(`Parsed map link for report: ${mapData.lat}, ${mapData.lng}`);
+                console.log(`✓ Parsed map link: ${mapData.lat}, ${mapData.lng}`);
               }
             } catch (err) {
-              console.error('Map link parsing error:', err);
+              // Silent fail - map link parsing is optional
+              console.log('Map link could not be parsed');
             }
           }
 
-          // Step 2: Geocode address if still no coordinates
-          if (!updatedReport.location_lat && !updatedReport.location_long && report.address) {
+          // Step 2: Geocode address if still no coordinates (silent - no user notification)
+          if (!updatedReport.location_lat && !updatedReport.location_long && report.address && report.address !== '-') {
             try {
-              const { data: geoData, error: geoError } = await supabase.functions.invoke('geocode-address', {
+              const { data: geoData } = await supabase.functions.invoke('geocode-address', {
                 body: { address: report.address }
               });
 
-              if (!geoError && geoData?.success) {
+              if (geoData?.success && geoData.lat && geoData.lng) {
                 updatedReport.location_lat = geoData.lat;
                 updatedReport.location_long = geoData.lng;
                 updatedReport.map_link = geoData.map_link;
-                console.log(`Geocoded address for report: ${geoData.lat}, ${geoData.lng}`);
+                console.log(`✓ Geocoded address: ${geoData.lat}, ${geoData.lng}`);
+              } else {
+                // Address could not be geocoded - this is normal for vague addresses
+                console.log('Address geocoding not available for this location');
               }
             } catch (err) {
-              console.error('Geocoding error:', err);
+              // Silent fail - geocoding is optional, many addresses cannot be geocoded
+              console.log('Address could not be geocoded');
             }
           }
 
