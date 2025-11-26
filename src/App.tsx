@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LiffProvider } from "./contexts/LiffContext";
+import Landing from "./pages/Landing";
 import Input from "./pages/Input";
 import SelectReports from "./pages/SelectReports";
 import Review from "./pages/Review";
@@ -30,7 +31,8 @@ const App = () => (
           <Navbar />
           <div className="flex-1">
             <Routes>
-              <Route path="/" element={<Input />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/extraction" element={<Input />} />
               <Route path="/select" element={<SelectReports />} />
               <Route path="/review" element={<Review />} />
               <Route path="/dashboard" element={<Dashboard />} />

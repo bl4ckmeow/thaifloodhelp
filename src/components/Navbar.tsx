@@ -18,10 +18,10 @@ const Navbar = () => {
 
   const navItems = [
     {
-      path: "/",
-      label: "หน้าแรก",
+      path: "/extraction",
+      label: "บันทึกข้อมูล",
       icon: Home,
-      description: "บันทึกข้อมูลผู้ประสบภัย",
+      description: "แจ้งข้อมูลผู้ประสบภัย",
     },
     {
       path: "/dashboard",
