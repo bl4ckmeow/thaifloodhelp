@@ -357,14 +357,25 @@ const Input = () => {
               )}
             </Button>
 
-            <div className="text-center">
-              <Button
-                variant="link"
-                onClick={() => navigate('/dashboard')}
-                className="text-primary"
-              >
-                ดูข้อมูลทั้งหมดในระบบ →
-              </Button>
+            <div className="text-center space-y-2">
+              <div>
+                <Button
+                  variant="link"
+                  onClick={() => navigate('/dashboard')}
+                  className="text-primary"
+                >
+                  ดูข้อมูลทั้งหมดในระบบ →
+                </Button>
+              </div>
+              <div>
+                <Button
+                  variant="link"
+                  onClick={() => navigate('/help')}
+                  className="text-muted-foreground"
+                >
+                  📖 คู่มือการใช้งาน
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
