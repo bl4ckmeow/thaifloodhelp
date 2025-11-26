@@ -16,6 +16,7 @@ import { Loader2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatPhoneNumber } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 interface Report {
   id: string;
@@ -143,12 +144,19 @@ export function EditReportDialog({ report, open, onOpenChange, onSuccess }: Edit
 
             <div className="space-y-2">
               <Label htmlFor="edit-status">สถานะ</Label>
-              <Input
-                id="edit-status"
-                value={formData.status || ''}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                placeholder="pending"
-              />
+              <Select
+                value={formData.status || "pending"}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกสถานะ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">รอความช่วยเหลือ</SelectItem>
+                  <SelectItem value="processed">กำลังช่วยเหลือ</SelectItem>
+                  <SelectItem value="completed">ช่วยเหลือเสร็จสิ้น</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

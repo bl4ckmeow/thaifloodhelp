@@ -79,6 +79,7 @@ Run the migrations in the `supabase/migrations/` directory to create the databas
 ```bash
 # Install Supabase CLI
 npm install -g supabase
+brew install supabase/tap/supabase for mac
 
 # Link to your project
 supabase link --project-ref your-project-ref

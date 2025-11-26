@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -72,10 +72,13 @@ const Dashboard = () => {
   const [filteredReports, setFilteredReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [manualSearchTerm, setManualSearchTerm] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [forceDeepSearch, setForceDeepSearch] = useState(false);
+  const [useManualSearch, setUseManualSearch] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -84,6 +87,7 @@ const Dashboard = () => {
   const itemsPerPage = 50;
   const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -97,6 +101,23 @@ const Dashboard = () => {
   const sortedReports = [...filteredReports].sort((a, b) => {
     if (!sortColumn) return 0;
 
+    // Handle date sorting for created_at
+    if (sortColumn === 'created_at') {
+      const aDate = new Date(a.created_at).getTime();
+      const bDate = new Date(b.created_at).getTime();
+      return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
+    }
+
+    // Handle string sorting for status
+    if (sortColumn === 'status') {
+      const aStr = (a.status || '').toLowerCase();
+      const bStr = (b.status || '').toLowerCase();
+      if (aStr < bStr) return sortDirection === 'asc' ? -1 : 1;
+      if (aStr > bStr) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    }
+
+    // Handle numeric sorting for other columns
     const aVal = a[sortColumn as keyof Report] as number || 0;
     const bVal = b[sortColumn as keyof Report] as number || 0;
 
@@ -120,7 +141,7 @@ const Dashboard = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, urgencyFilter, selectedCategories]);
+  }, [searchTerm, manualSearchTerm, urgencyFilter, statusFilter, selectedCategories]);
 
   const exportToCSV = () => {
     if (filteredReports.length === 0) {
@@ -218,69 +239,69 @@ const Dashboard = () => {
 
   useEffect(() => {
     const searchReports = async () => {
-      if (!searchTerm.trim()) {
-        // No search term - show all reports with filters
-        let filtered = reports;
+      let filtered = reports;
 
-        // Apply urgency filter
-        if (urgencyFilter !== null) {
-          filtered = filtered.filter((r) => r.urgency_level === urgencyFilter);
-        }
-
-        // Apply help category filters
-        if (selectedCategories.length > 0) {
-          filtered = filtered.filter((r) =>
-            selectedCategories.some(cat => r.help_categories?.includes(cat))
+      // Apply manual text search if enabled
+      if (useManualSearch && manualSearchTerm.trim()) {
+        const searchLower = manualSearchTerm.toLowerCase();
+        filtered = filtered.filter((r) => {
+          return (
+            r.name?.toLowerCase().includes(searchLower) ||
+            r.lastname?.toLowerCase().includes(searchLower) ||
+            r.reporter_name?.toLowerCase().includes(searchLower) ||
+            r.address?.toLowerCase().includes(searchLower) ||
+            r.phone?.some(p => p.includes(searchLower)) ||
+            r.health_condition?.toLowerCase().includes(searchLower) ||
+            r.help_needed?.toLowerCase().includes(searchLower) ||
+            r.additional_info?.toLowerCase().includes(searchLower)
           );
-        }
+        });
+      }
+      // Apply AI search if not using manual search and search term exists
+      else if (!useManualSearch && searchTerm.trim()) {
+        // Perform vector-based semantic search
+        setIsSearching(true);
+        try {
+          const { data, error } = await supabase.functions.invoke('search-reports', {
+            body: {
+              query: searchTerm,
+              urgencyFilter: urgencyFilter,
+              limit: 100,
+              forceSemanticSearch: forceDeepSearch
+            }
+          });
 
-        setFilteredReports(filtered);
-        return;
+          if (error) throw error;
+
+          filtered = data.reports || [];
+        } catch (err) {
+          console.error('Search error:', err);
+          toast.error('ไม่สามารถค้นหาได้', {
+            description: 'กรุณาลองใหม่อีกครั้ง'
+          });
+        } finally {
+          setIsSearching(false);
+        }
       }
 
-      // Perform vector-based semantic search
-      setIsSearching(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('search-reports', {
-          body: {
-            query: searchTerm,
-            urgencyFilter: urgencyFilter,
-            limit: 100,
-            forceSemanticSearch: forceDeepSearch
-          }
-        });
-
-        if (error) throw error;
-
-        let searchResults = data.reports || [];
-
-        // Apply help category filters to search results
-        if (selectedCategories.length > 0) {
-          searchResults = searchResults.filter((r: Report) =>
-            selectedCategories.some(cat => r.help_categories?.includes(cat))
-          );
-        }
-
-        setFilteredReports(searchResults);
-      } catch (err) {
-        console.error('Search error:', err);
-        toast.error('ไม่สามารถค้นหาได้', {
-          description: 'กรุณาลองใหม่อีกครั้ง'
-        });
-        // Fallback to showing all reports
-        let filtered = reports;
-        if (urgencyFilter !== null) {
-          filtered = filtered.filter((r) => r.urgency_level === urgencyFilter);
-        }
-        if (selectedCategories.length > 0) {
-          filtered = filtered.filter((r) =>
-            selectedCategories.some(cat => r.help_categories?.includes(cat))
-          );
-        }
-        setFilteredReports(filtered);
-      } finally {
-        setIsSearching(false);
+      // Apply urgency filter
+      if (urgencyFilter !== null) {
+        filtered = filtered.filter((r) => r.urgency_level === urgencyFilter);
       }
+
+      // Apply status filter
+      if (statusFilter !== null) {
+        filtered = filtered.filter((r) => r.status === statusFilter);
+      }
+
+      // Apply help category filters
+      if (selectedCategories.length > 0) {
+        filtered = filtered.filter((r) =>
+          selectedCategories.some(cat => r.help_categories?.includes(cat))
+        );
+      }
+
+      setFilteredReports(filtered);
     };
 
     // Debounce search
@@ -289,7 +310,7 @@ const Dashboard = () => {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [reports, searchTerm, urgencyFilter, selectedCategories, forceDeepSearch]);
+  }, [reports, searchTerm, manualSearchTerm, urgencyFilter, statusFilter, selectedCategories, forceDeepSearch, useManualSearch]);
 
   const fetchReports = async () => {
     setIsLoading(true);
@@ -351,6 +372,9 @@ const Dashboard = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             กลับไปหน้าแรก
           </Button>
+          <Button variant="outline" onClick={() => navigate('/help')}>
+            📖 คู่มือการใช้งาน
+          </Button>
         </div>
 
         <div className="text-center space-y-2">
@@ -405,51 +429,110 @@ const Dashboard = () => {
         <Card>
           <CardHeader>
             <div className="space-y-4">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Input
-                    placeholder="ค้นหาอัจฉริยะ: ชื่อ, ที่อยู่, เบอร์โทร, อาการ, ความช่วยเหลือ... (ใช้ AI)"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  {isSearching && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    </div>
-                  )}
-                </div>
+              {/* Search Mode Toggle */}
+              <div className="flex gap-2">
                 <Button
-                  variant={forceDeepSearch ? "default" : "outline"}
-                  onClick={() => setForceDeepSearch(!forceDeepSearch)}
-                  className="whitespace-nowrap"
+                  variant={!useManualSearch ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setUseManualSearch(false);
+                    setManualSearchTerm("");
+                  }}
                 >
-                  🔍 Deep Search (AI)
+                  🤖 AI Search
+                </Button>
+                <Button
+                  variant={useManualSearch ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setUseManualSearch(true);
+                    setSearchTerm("");
+                  }}
+                >
+                  🔤 Manual Search
                 </Button>
               </div>
 
-              {/* Urgency Filter */}
-              <div className="space-y-2">
-                <div className="text-sm font-medium">ระดับความเร่งด่วน</div>
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant={urgencyFilter === null ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setUrgencyFilter(null)}
-                  >
-                    <Filter className="mr-2 h-4 w-4" />
-                    ทั้งหมด
-                  </Button>
-                  {[1, 2, 3, 4, 5].map((level) => (
+              {/* Search Input */}
+              <div className="flex flex-col md:flex-row gap-4">
+                {useManualSearch ? (
+                  <div className="flex-1 relative">
+                    <Input
+                      placeholder="ค้นหา: ชื่อ, ที่อยู่, เบอร์โทร, อาการ, ความช่วยเหลือ..."
+                      value={manualSearchTerm}
+                      onChange={(e) => setManualSearchTerm(e.target.value)}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex-1 relative">
+                      <Input
+                        placeholder="ค้นหาอัจฉริยะ: ชื่อ, ที่อยู่, เบอร์โทร, อาการ, ความช่วยเหลือ... (ใช้ AI)"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                      {isSearching && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        </div>
+                      )}
+                    </div>
                     <Button
-                      key={level}
-                      variant={urgencyFilter === level ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setUrgencyFilter(level)}
-                      className={urgencyFilter === level ? getUrgencyBadgeClass(level) : ""}
+                      variant={forceDeepSearch ? "default" : "outline"}
+                      onClick={() => setForceDeepSearch(!forceDeepSearch)}
+                      className="whitespace-nowrap"
                     >
-                      ระดับ {level}
+                      🔍 Deep Search
                     </Button>
-                  ))}
+                  </>
+                )}
+              </div>
+
+              {/* Status and Urgency Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Status Filter */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">สถานะ</div>
+                  <Select
+                    value={statusFilter || "all"}
+                    onValueChange={(value) => setStatusFilter(value === "all" ? null : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกสถานะ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">ทั้งหมด</SelectItem>
+                      <SelectItem value="pending">รอความช่วยเหลือ</SelectItem>
+                      <SelectItem value="processed">กำลังช่วยเหลือ</SelectItem>
+                      <SelectItem value="completed">ช่วยเหลือเสร็จสิ้น</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Urgency Filter */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">ระดับความเร่งด่วน</div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      variant={urgencyFilter === null ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setUrgencyFilter(null)}
+                    >
+                      <Filter className="mr-2 h-4 w-4" />
+                      ทั้งหมด
+                    </Button>
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <Button
+                        key={level}
+                        variant={urgencyFilter === level ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setUrgencyFilter(level)}
+                        className={urgencyFilter === level ? getUrgencyBadgeClass(level) : ""}
+                      >
+                        ระดับ {level}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -501,8 +584,22 @@ const Dashboard = () => {
           </CardHeader>
         </Card>
 
-        {/* Heatmap */}
-        <ReportHeatmap reports={filteredReports} />
+        {/* Heatmap - Collapsible */}
+        <Card>
+          <CardHeader className="cursor-pointer" onClick={() => setShowHeatmap(!showHeatmap)}>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">แผนที่ความร้อน (Heatmap)</CardTitle>
+              <Button variant="ghost" size="sm">
+                {showHeatmap ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            </div>
+          </CardHeader>
+          {showHeatmap && (
+            <CardContent>
+              <ReportHeatmap reports={filteredReports} />
+            </CardContent>
+          )}
+        </Card>
 
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground">
@@ -548,11 +645,33 @@ const Dashboard = () => {
                       <TableHead className="w-12"></TableHead>
                       <TableHead
                         className="cursor-pointer hover:bg-muted/50 select-none"
+                        onClick={() => handleSort('created_at')}
+                      >
+                        <div className="flex items-center gap-1">
+                          วันที่บันทึก
+                          {sortColumn === 'created_at' ? (
+                            sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                          ) : <ArrowUpDown className="h-4 w-4 opacity-30" />}
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50 select-none"
                         onClick={() => handleSort('urgency_level')}
                       >
                         <div className="flex items-center gap-1">
                           ความเร่งด่วน
                           {sortColumn === 'urgency_level' ? (
+                            sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                          ) : <ArrowUpDown className="h-4 w-4 opacity-30" />}
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50 select-none"
+                        onClick={() => handleSort('status')}
+                      >
+                        <div className="flex items-center gap-1">
+                          สถานะ
+                          {sortColumn === 'status' ? (
                             sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
                           ) : <ArrowUpDown className="h-4 w-4 opacity-30" />}
                         </div>
@@ -637,8 +756,22 @@ const Dashboard = () => {
                               )}
                             </TableCell>
                             <TableCell>
+                              {new Date(report.created_at).toLocaleString('th-TH', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </TableCell>
+                            <TableCell>
                               <Badge className={getUrgencyBadgeClass(report.urgency_level)}>
                                 {report.urgency_level}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {report.status || '-'}
                               </Badge>
                             </TableCell>
                             <TableCell className="font-medium">
