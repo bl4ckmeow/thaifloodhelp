@@ -1,9 +1,10 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, Database, BarChart3, HelpCircle, Menu, X, Code } from "lucide-react";
+import { Home, Database, BarChart3, HelpCircle, Menu, X, Code, LogIn, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import logo from "@/assets/logo.png";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sheet,
   SheetContent,
@@ -11,11 +12,25 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isAdmin, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   const navItems = [
     {
@@ -98,6 +113,37 @@ const Navbar = () => {
                 </Button>
               );
             })}
+            
+            {/* Auth Button */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>
+                    {user.email}
+                    {isAdmin && <span className="text-xs text-muted-foreground ml-2">(Admin)</span>}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    ออกจากระบบ
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => navigate("/auth")}
+                className="gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                <span className="hidden lg:inline">เข้าสู่ระบบ</span>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu */}
@@ -138,6 +184,39 @@ const Navbar = () => {
                       </Button>
                     );
                   })}
+                  
+                  {/* Auth Button Mobile */}
+                  <div className="mt-4 pt-4 border-t">
+                    {user ? (
+                      <>
+                        <div className="px-4 py-2 text-sm">
+                          <div className="font-medium">{user.email}</div>
+                          {isAdmin && <div className="text-xs text-muted-foreground">Admin</div>}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start gap-3 h-14"
+                          onClick={handleSignOut}
+                        >
+                          <LogOut className="h-5 w-5" />
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">ออกจากระบบ</span>
+                          </div>
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start gap-3 h-14"
+                        onClick={() => handleNavigation("/auth")}
+                      >
+                        <LogIn className="h-5 w-5" />
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">เข้าสู่ระบบ</span>
+                        </div>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

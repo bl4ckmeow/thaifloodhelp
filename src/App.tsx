@@ -14,6 +14,7 @@ import ReportDetail from "./pages/ReportDetail";
 import Help from "./pages/Help";
 import Map from "./pages/Map";
 import Api from "./pages/Api";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
@@ -32,6 +33,7 @@ const App = () => (
           <div className="flex-1">
             <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
               <Route path="/extraction" element={<Input />} />
               <Route path="/select" element={<SelectReports />} />
               <Route path="/review" element={<Review />} />
