@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Home, Database, BarChart3, HelpCircle, Menu, X, Code } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import logo from "@/assets/logo.png";
 import {
   Sheet,
   SheetContent,
@@ -65,7 +66,7 @@ const Navbar = () => {
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate("/")}
           >
-            <div className="text-2xl">🌊</div>
+            <img src={logo} alt="Thai Flood Help Logo" className="h-8 w-8 sm:h-10 sm:w-10" />
             <div>
               <h1 className="text-base sm:text-lg font-bold">ช่วยเหลือผู้ประสบภัย</h1>
               <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Flood Help System</p>
@@ -110,7 +111,7 @@ const Navbar = () => {
               <SheetContent side="right" className="w-[280px]">
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
-                    <span className="text-2xl">🌊</span>
+                    <img src={logo} alt="Logo" className="h-6 w-6" />
                     เมนู
                   </SheetTitle>
                 </SheetHeader>
