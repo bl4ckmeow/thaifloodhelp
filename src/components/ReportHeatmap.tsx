@@ -11,6 +11,7 @@ import {
     Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HELP_CATEGORIES, URGENCY_COLORS } from "@/constants/helpCategories";
 
 interface Report {
     id: string;
@@ -26,29 +27,6 @@ interface Report {
 interface ReportHeatmapProps {
     reports: Report[];
 }
-
-const HELP_CATEGORIES = [
-    { id: 'drowning', label: 'จมน้ำ', icon: '🌊' },
-    { id: 'trapped', label: 'ติดขัง', icon: '🚪' },
-    { id: 'unreachable', label: 'ติดต่อไม่ได้', icon: '📵' },
-    { id: 'water', label: 'ขาดน้ำดื่ม', icon: '💧' },
-    { id: 'food', label: 'ขาดอาหาร', icon: '🍚' },
-    { id: 'electricity', label: 'ขาดไฟฟ้า', icon: '⚡' },
-    { id: 'shelter', label: 'ที่พักพิง', icon: '🏠' },
-    { id: 'medical', label: 'ต้องการรักษา', icon: '🏥' },
-    { id: 'medicine', label: 'ขาดยา', icon: '💊' },
-    { id: 'evacuation', label: 'อพยพ', icon: '🚁' },
-    { id: 'missing', label: 'คนหาย', icon: '🔍' },
-    { id: 'clothes', label: 'เสื้อผ้า', icon: '👕' },
-];
-
-const URGENCY_COLORS = {
-    1: '#94a3b8',
-    2: '#60a5fa',
-    3: '#fbbf24',
-    4: '#fb923c',
-    5: '#ef4444',
-};
 
 const ReportHeatmap = ({ reports }: ReportHeatmapProps) => {
     const heatmapData = useMemo(() => {

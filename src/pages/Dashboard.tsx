@@ -14,11 +14,6 @@ import {
   TableRow
 } from "@/components/ui/table";
 import {
-  AlertCircle,
-  ArrowLeft,
-  Users,
-  Baby,
-  UserRound,
   Filter,
   Loader2,
   ChevronDown,
@@ -38,10 +33,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import QueryBot from "@/components/QueryBot";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PhoneList } from "@/components/PhoneList";
 import ReportHeatmap from "@/components/ReportHeatmap";
 import { EditReportDialog } from "@/components/EditReportDialog";
 import type { Report } from "@/types/report";
 import { formatCaseId, getUrgencyBadgeClass } from "@/lib/reportUtils";
+import { HELP_CATEGORIES } from "@/constants/helpCategories";
 import { useLiff } from "@/contexts/LiffContext";
 
 const Dashboard = () => {
@@ -75,7 +72,6 @@ const Dashboard = () => {
   const itemsPerPage = 50;
   const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [showHeatmap, setShowHeatmap] = useState(false);
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -351,13 +347,6 @@ const Dashboard = () => {
     fetchReports();
   };
 
-  const stats = {
-    total: reports.length,
-    children: reports.reduce((sum, r) => sum + r.number_of_children, 0),
-    seniors: reports.reduce((sum, r) => sum + r.number_of_seniors, 0),
-    critical: reports.filter((r) => r.urgency_level >= 4).length,
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -384,49 +373,6 @@ const Dashboard = () => {
         <div className="text-center space-y-2">
           <h1 className="text-3xl md:text-4xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">ข้อมูลผู้ประสบภัยทั้งหมด</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">รายการทั้งหมด</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">เด็กทั้งหมด</CardTitle>
-              <Baby className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.children}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">ผู้สูงอายุ</CardTitle>
-              <UserRound className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.seniors}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-destructive/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">เร่งด่วนสูง (4-5)</CardTitle>
-              <AlertCircle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-destructive">{stats.critical}</div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Filters */}
@@ -544,20 +490,7 @@ const Dashboard = () => {
               <div className="space-y-2">
                 <div className="text-sm font-medium">ประเภทความช่วยเหลือ</div>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {[
-                    { id: 'drowning', label: 'จมน้ำ', icon: '🌊' },
-                    { id: 'trapped', label: 'ติดขัง', icon: '🚪' },
-                    { id: 'unreachable', label: 'ติดต่อไม่ได้', icon: '📵' },
-                    { id: 'water', label: 'ขาดน้ำดื่ม', icon: '💧' },
-                    { id: 'food', label: 'ขาดอาหาร', icon: '🍚' },
-                    { id: 'electricity', label: 'ขาดไฟฟ้า', icon: '⚡' },
-                    { id: 'shelter', label: 'ที่พักพิง', icon: '🏠' },
-                    { id: 'medical', label: 'ต้องการรักษา', icon: '🏥' },
-                    { id: 'medicine', label: 'ขาดยา', icon: '💊' },
-                    { id: 'evacuation', label: 'อพยพ', icon: '🚁' },
-                    { id: 'missing', label: 'คนหาย', icon: '🔍' },
-                    { id: 'clothes', label: 'เสื้อผ้า', icon: '👕' },
-                  ].map((category) => (
+                  {HELP_CATEGORIES.map((category) => (
                     <div
                       key={category.id}
                       className={`flex items-center space-x-2 p-2 rounded-md border cursor-pointer transition-colors ${selectedCategories.includes(category.id)
@@ -586,23 +519,6 @@ const Dashboard = () => {
               </div>
             </div>
           </CardHeader>
-        </Card>
-
-        {/* Heatmap - Collapsible */}
-        <Card>
-          <CardHeader className="cursor-pointer" onClick={() => setShowHeatmap(!showHeatmap)}>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">แผนที่ความร้อน (Heatmap)</CardTitle>
-              <Button variant="ghost" size="sm">
-                {showHeatmap ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </Button>
-            </div>
-          </CardHeader>
-          {showHeatmap && (
-            <CardContent>
-              <ReportHeatmap reports={filteredReports} />
-            </CardContent>
-          )}
         </Card>
 
         <div className="flex justify-between items-center">
