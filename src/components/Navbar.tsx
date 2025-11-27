@@ -313,8 +313,8 @@ const Navbar = () => {
                   <div className="mt-4 pt-4 border-t">
                     {user ? (
                       <>
-                        <div className="px-4 py-2 flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
+                        <div className="px-4 py-3 flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
                             <AvatarImage
                               src={
                                 user.user_metadata?.avatar_url ||
@@ -326,8 +326,11 @@ const Navbar = () => {
                               {user.email?.charAt(0).toUpperCase() || 'U'}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="text-sm min-w-0 flex-1 leading-tight">
-                            <div className="font-medium truncate" title={user.email}>
+                          <div className="text-sm min-w-0 flex-1 leading-snug">
+                            <div
+                              className="font-medium break-words whitespace-normal"
+                              title={user.email}
+                            >
                               {user.email}
                             </div>
                             {isAdmin && (
@@ -350,8 +353,8 @@ const Navbar = () => {
                       </>
                     ) : isLoggedIn && profile ? (
                       <>
-                        <div className="px-4 py-2 flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border-2 border-[#06C755]">
+                        <div className="px-4 py-3 flex items-center gap-3">
+                          <Avatar className="h-9 w-9 border-2 border-[#06C755]">
                             <AvatarImage
                               src={profile.pictureUrl}
                               alt={profile.displayName}
@@ -361,12 +364,9 @@ const Navbar = () => {
                                 'L'}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="text-sm min-w-0 flex-1 leading-tight">
+                          <div className="text-sm min-w-0 flex-1 leading-snug">
                             <div className="font-medium flex items-center gap-2 min-w-0">
-                              <span
-                                className="truncate max-w-[160px]"
-                                title={profile.displayName}
-                              >
+                              <span className="break-words whitespace-normal">
                                 {profile.displayName}
                               </span>
                               <span className="text-[10px] bg-[#06C755] text-white px-1.5 py-0.5 rounded-full shrink-0">
